@@ -1,0 +1,273 @@
+---
+title: "edgeR_analysis"
+author: "Anneke Prins"
+date: "2026-03-26"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+BiocManager::install("edgeR")
+library(edgeR)
+options(bitmapType = 'cairo')
+```
+
+## edgeR analysis of *P. notatum* samples
+
+Three samples for analysis:
+SRR7347364 - RNA-Seq of Paspalum notatum: Leaf_diploid sexual_BGP306_clone2
+SRR7347369 - RNA-Seq of Paspalum notatum: Leaf_diploid sexual_BGP22_clone2
+SRR7347375 - RNA-Seq of Paspalum notatum: Inflorescence_diploid sexual_BGP22_clone1 
+
+```{r data}
+setwd("/rds/projects/l/leachlj-eragrostis-plana/APrins/scripts/paspalum_rnaseq_all")
+
+database <- "/rds/projects/l/leachlj-eragrostis-plana/APrins/paspalum_inflorescence_htseq_read_counts/"
+outputs <- "/rds/projects/l/leachlj-eragrostis-plana/APrins/paspalum_inflorescence_edgeR_analysis/"
+
+BGP306_leaf <- read_delim(paste0(database,"SRR7347364_count.txt"), col_names=c("GeneID", "Leaf306"))
+BGP22_leaf <- read_delim(paste0(database,"SRR7347369_count.txt"), col_names=c("GeneID", "Leaf22"))
+BGP22_inflor <- read_delim(paste0(database,"SRR7347375_count.txt"), col_names=c("GeneID", "Inflor22"))
+
+
+count_data <- BGP306_leaf %>% 
+  inner_join(BGP22_leaf, by="GeneID") %>%
+  inner_join(BGP22_inflor, by="GeneID") 
+
+count_data_long <- pivot_longer(count_data, cols=-GeneID)
+
+ggplot(data=count_data_long, aes(x=log(value+1), fill=name)) +
+  geom_histogram(alpha=0.6, position = 'identity', bins=50) +
+  scale_fill_manual(values=c("#69b3a2", "#404080", "#EDDA1C")) +
+    labs(fill="")
+
+# promote col 1 to rownames
+count_data <- column_to_rownames(count_data, var="GeneID")
+
+
+```
+
+
+```{r}
+# apply exactTest to data
+
+y <- DGEList(counts=count_data)
+
+# use all values from E. plana
+
+## filter out low expressed genes
+# convert counts to CPM; set threshold; create mask; apply to original
+CPM_data <- cpm(y)
+CPM_threshold <- CPM_data > 0.1
+
+###### check validity if necessary #####
+options(bitmapType = 'cairo')
+#png(filename=paste0(outputs,"CPM_vs_raw.png"))
+plot(CPM_data[,1],
+     count_data[,1], 
+     xlab="CPM", 
+     ylab="Raw Count", 
+     main=colnames(CPM_data)[1], 
+     ylim=c(0,30), 
+     xlim=c(0,1))
+# Add a vertical line at 0.1 CPM
+abline(v=0.1)
+#dev.off
+
+### library sizes
+#png(filename=paste0(outputs,"barplot_library_size.png"))
+barplot(y$samples$lib.size, names=colnames(y), las=2, main="Barplot of library sizes")
+abline(h=20e6, lty=2)
+#dev.off()
+
+## Range of library sizes. 2E7 to 5E7.
+
+#######
+# Original instruction filters out genes that don't pass threshold in >= 3 samples
+# however, given paucity of samples here I will, in effect, skip this step
+keep <- rowSums(CPM_threshold) >=1
+
+# filter original object and calculate scaling factors
+y <- y[keep, , keep.lib.sizes=FALSE]
+y <- calcNormFactors(y) # uses TMM by default
+
+# add sample IDs for easy comparison
+y$samples$group <- c("BGP306_leaf", "BGP22_leaf", "BGP22_inflor")
+
+# set dispersion at 20% 
+bcv = 0.2
+
+# normalisation happens inside exactTest - it uses calcNormFactors output to compute probabilities
+# exactTest calculates effective library size (lib.size * norm.factor)
+Inflor22_vs_leaf22_DEG <- exactTest(y, dispersion = bcv^2, pair=c("BGP22_leaf", "BGP22_inflor"))
+topTags(Inflor22_vs_leaf22_DEG) # genes differentially expressed in B1 compared to D1
+Inflor22_vs_leaf22_DEG_results_table <- topTags(Inflor22_vs_leaf22_DEG, n = nrow(Inflor22_vs_leaf22_DEG$table))$table
+#write.csv(Inflor22_vs_leaf22_DEG_results_table, file = paste0(outputs,"Inflor22_vs_leaf22_edgeR_exactTest_results.csv"), row.names = TRUE)
+
+Inflor22_vs_leaf306_DEG <- exactTest(y, dispersion = bcv^2, pair=c("BGP306_leaf", "BGP22_inflor"))
+topTags(Inflor22_vs_leaf306_DEG)
+Inflor22_vs_leaf306_DEG_results_table <- topTags(Inflor22_vs_leaf306_DEG, n = nrow(Inflor22_vs_leaf306_DEG$table))$table
+#write.csv(Inflor22_vs_leaf306_DEG_results_table, file = paste0(outputs,"Inflor22_vs_leaf306_edgeR_exactTest_results.csv"), row.names = TRUE)
+
+```
+
+```{r}
+#png(width=240, height=320)
+par(mfrow=c(1,2))
+hist(Inflor22_vs_leaf22_DEG_results_table$logFC, xlab="", main="")
+hist(Inflor22_vs_leaf306_DEG_results_table$logFC, xlab="", main="")
+#dev.off()
+
+```
+
+
+```{r}
+# Get log2 counts per million
+logcounts <- cpm(y, log=TRUE)
+# Check distributions of samples using boxplots
+#png(filename=paste0(outputs,"boxplots_logCPM.png"))
+boxplot(logcounts, 
+        xlab="", 
+        ylab="Log2 counts per million",
+        las=2)
+# Let's add a blue horizontal line that corresponds to the median logCPM
+abline(h=median(logcounts), col="blue")
+#dev.off()
+
+```
+### Multidimensional scaling plots
+An MDSplot is a visualisation of a principle components analysis, which determines the greatest sources of variation in the data. 
+
+Clustering in the MDS plot can be used to motivate changes to the design matrix in light of potential batch effects. For example, imagine that the first replicate of each group was prepared at a separate time from the second replicate. If the MDS plot showed separation of samples by time, it might be worthwhile including time in the down stream analysis to account for the time-based effect.
+
+The distance between each pair of samples in the MDS plot is calculated as the leading log-fold change, defined as the average (root-mean-square) of the largest absolute log2-fold changes between that pair of samples.
+
+```{r}
+## draw MDS plot
+#png(filename=paste0(outputs,"MDS_tissue.png"))
+plotMDS(y)
+#dev.off()
+
+```
+PCA analysis
+
+```{r PCA}
+
+#png(filename=paste0(outputs,"PCA_tissue.png"))
+plotMDS(y, gene.selection="common")
+#dev.off()
+
+```
+
+## Hierarchical clustering 
+```{r HC}
+# Get log2 counts per million; NOTE: this is on RAW READS so not unique to edgeR
+logcounts <- cpm(y, log=TRUE)
+
+# We estimate the variance for each row in the logcounts matrix
+var_genes <- apply(logcounts, 1, var)
+head(var_genes)
+
+# Get the gene names for the top 100 most variable genes
+select_var <- names(sort(var_genes, decreasing=TRUE))[1:100]
+head(select_var)
+
+# Subset logcounts matrix
+highly_variable_lcpm <- logcounts[select_var,]
+dim(highly_variable_lcpm)
+
+library(gplots)
+library(RColorBrewer)
+mypalette <- brewer.pal(11, "RdYlBu")
+# http://colorbrewer2.org/#type=sequential&scheme=BuGn&n=3
+morecols <- colorRampPalette(mypalette)
+
+# Plot the heatmap
+png(filename=paste0(outputs,"heatmap.png"),height=22, width=18, units = "cm",
+    res = 200)
+heatmap.2(highly_variable_lcpm, 
+          cexCol=1,
+          cexRow=0.5,
+          col=rev(morecols(50)),
+          trace="column", 
+          main="Top 100 most variable genes\n across samples",
+          scale="row")
+dev.off()
+
+# output data
+#write.csv(highly_variable_lcpm, file = paste0(outputs,"highly_variable_lcpm.csv"), row.names = TRUE)
+
+```
+
+```{r}
+# extract specific blocks of genes; not sure if correct. see next block down as well.
+#hc <- hclust(dist(highly_variable_lcpm, method = "euclidean"))
+#cutree_obj_no_scale <- cutree(hc, k=8)
+
+scaled_lcpm <- t(scale(t(highly_variable_lcpm))) # returns identical to hclust2
+hc_scaled <- hclust(dist(scaled_lcpm, method="euclidean"),
+                    method="complete") # cluster by ROW (genes) not COLS (samples)
+# get gene IDs
+genes <- rownames(scaled_lcpm)
+
+# Cut the row dendrogram into blocks 
+row_clusters <- cutree(hc_scaled, k=4)
+
+# Identify which cluster corresponds to the red A2 block
+# cluster with largest mean is "red block" in A2
+cluster_means <- tapply(
+  scaled_lcpm[, "Inflor22"],
+  row_clusters,
+  mean
+)
+
+# hone in on cluster 1 with mean of 1.14
+red_block_genes <- genes[row_clusters == 1]
+
+# sanity check
+heatmap.2(
+  highly_variable_lcpm[red_block_genes, , drop = FALSE],
+  scale = "row",
+  col = rev(morecols(50)),
+  trace = "none",
+  cexRow=0.5,
+  cexCol=1
+)
+
+
+## simpler approach:
+red_block_genes2 <- rownames(scaled_lcpm)[scaled_lcpm[, "Inflor22"] > 1.1]
+
+intersect(red_block_genes, red_block_genes2)
+print(red_block_genes)
+
+
+```
+
+
+
+```{r}
+
+library(pheatmap)
+hmap = pheatmap(highly_variable_lcpm)
+highly_variable_lcpm[hmap$tree_row$order,]
+test2 <- highly_variable_lcpm[hmap$tree_row$order,]
+Inflor_clust_selection <- test2 %>% as.data.frame() %>% filter(Inflor22>1.1)
+#write.csv(Inflor_clust_selection, file = paste0(outputs,"highly_variable_lcpm_2.csv"), row.names = TRUE)
+
+```
+
+
+
+```{r}
+
+sessionInfo()
+
+```
+
+
+
+
+
+
