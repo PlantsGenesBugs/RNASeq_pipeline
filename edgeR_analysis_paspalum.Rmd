@@ -23,8 +23,8 @@ SRR7347375 - RNA-Seq of Paspalum notatum: Inflorescence_diploid sexual_BGP22_clo
 ```{r data}
 setwd("/rds/projects/l/leachlj-eragrostis-plana/APrins/scripts/paspalum_rnaseq_all")
 
-database <- "/rds/projects/l/leachlj-eragrostis-plana/APrins/paspalum_inflorescence_htseq_read_counts/"
-outputs <- "/rds/projects/l/leachlj-eragrostis-plana/APrins/paspalum_inflorescence_edgeR_analysis/"
+database <- ".../paspalum_inflorescence_htseq_read_counts/"
+outputs <- "...paspalum_inflorescence_edgeR_analysis/"
 
 BGP306_leaf <- read_delim(paste0(database,"SRR7347364_count.txt"), col_names=c("GeneID", "Leaf306"))
 BGP22_leaf <- read_delim(paste0(database,"SRR7347369_count.txt"), col_names=c("GeneID", "Leaf22"))
