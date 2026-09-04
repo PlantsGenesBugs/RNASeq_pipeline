@@ -12,6 +12,6 @@ Split paired-end read file into separate forward and reverse read files: Package
 4. Expression analysis: normalise and standardise expression; perform differential gene expression analysis. Package: edgeR (note: I have also used GFOLD to analyse this type of data in the instance where no biological replicates were available). Files: edgeR_analysis_paspalum.Rmd
 
 ### Other analyses performed:  
-1. The original pipeline includes steps to do gene set enrichment analysis using clusterProfiler and enrichplot.
-2. Looking for genes that are essential for competitive advantage in weed (E. plana) that competes with native grass (P. notatum). Packages: BLAST+. File: doblastn.sh.
-3. 
+1. Looking for genes that are essential for competitive advantage in weed (E. plana) that competes with native grass (P. notatum). Packages: BLAST+. File: doblastn.sh.
+3. The original pipeline includes steps to do gene set enrichment analysis using clusterProfiler and enrichplot.
+
