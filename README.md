@@ -1,8 +1,8 @@
 This repository contains a version of the RNA-seq pipeline I developed during my MSc (Bioinformatics) at the University of Birmingham, under the supervision of Dr. Lindsey Compton. Here I have applied it to an external database (an RNASeq data set relating to grass native to the Brazilian Pampa, namely  *Paspalum notatum*). The aim was to identify if molecular targets identified in the target weed species, *Eragrostis plana*, were also key to growth and survival in native grass species. 
 
-### First, get data:
-Download RNAseq data from NCBI Sequence Read Archive using SRA Toolkit. Packages: SRA_Toolkit. File: upload_inflorescence_data.sh.
-Split paired-end read file into separate forward and reverse read files: Packages: seqtk. File: split_read_file.sh.
+### First, get data:  
+- Download RNAseq data from NCBI Sequence Read Archive using SRA Toolkit. Packages: SRA_Toolkit. File: upload_inflorescence_data.sh. 
+- Split paired-end read file into separate forward and reverse read files: Packages: seqtk. File: split_read_file.sh.  
 
 ## The order in which the pipeline runs is:  
 
