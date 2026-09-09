@@ -6,12 +6,12 @@ This repository contains a version of the RNA-seq pipeline I developed during my
 
 ## The order in which the pipeline runs is:  
 
-1. Preprocessing: assess quality of reads, trim adaptors/low quality bases, filter out short/low quality reads. Packages: FastQC, Trimgalore. Files: fastQC.sh, trim.sh
-2. Alignment to genome: create .gtf file, align RNAseq reads to genome, create .bai file, visualise in IGV (if required!). Packages: STAR. Files: STAR_index_creator.sh, STAR_align.sh.
-3. Read counts: count number of reads aligned to each gene. Package: HTSeq. File: HTSeq_quantify_paspalum.sh.
-4. Expression analysis: normalise and standardise expression; perform differential gene expression analysis. Package: edgeR (note: I have also used GFOLD to analyse this type of data in the instance where no biological replicates were available). Files: edgeR_analysis_paspalum.Rmd
+1. Preprocessing: assess quality of reads, trim adaptors/low quality bases, filter out short/low quality reads. Packages: FastQC, Trimgalore. Files: **fastQC.sh, trim.sh**
+2. Alignment to genome: create .gtf file, align RNAseq reads to genome, create .bai file, visualise in IGV (if required!). Packages: STAR. Files: **STAR_index_creator.sh, STAR_align.sh**.
+3. Read counts: count number of reads aligned to each gene. Package: HTSeq. File: **HTSeq_quantify_paspalum.sh**.
+4. Expression analysis: normalise and standardise expression; perform differential gene expression analysis. Package: edgeR (note: I have also used GFOLD to analyse this type of data in the instance where no biological replicates were available). Files: **edgeR_analysis_paspalum.Rmd**
 
 ### Other analyses performed:  
-1. Looking for genes that are essential for competitive advantage in the weed (*E. plana*) that competes with native grass (*P. notatum)*. Packages: BLAST+. File: doblastn.sh.
-3. The original pipeline includes steps to do gene set enrichment analysis using clusterProfiler and enrichplot.
+1. Looking for genes that are essential for competitive advantage in the weed (*E. plana*) that competes with native grass (*P. notatum)*. Packages: BLAST+. File: **doblastn.sh**.
+3. The original pipeline included steps to do gene set enrichment analysis using clusterProfiler and enrichplot.
 
