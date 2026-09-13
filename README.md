@@ -15,3 +15,5 @@ This repository contains a version of the RNA-seq pipeline I developed during my
 1. Looking for genes that are essential for competitive advantage in the weed (*E. plana*) that competes with native grass (*P. notatum)*. Packages: BLAST+. File: **doblastn.sh**.
 3. The original pipeline included steps to do gene set enrichment analysis using clusterProfiler and enrichplot.
 
+### Overall procedure:  
+![](https://github.com/PlantsGenesBugs/RNASeq_pipeline/blob/main/rnaseq.png)
